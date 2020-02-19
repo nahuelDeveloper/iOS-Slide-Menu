@@ -62,6 +62,8 @@ NSString  *const SlideNavigationControllerDidReveal = @"SlideNavigationControlle
 
 static SlideNavigationController *singletonInstance;
 
+UIView *problemView;
+
 #pragma mark - Initialization -
 
 + (SlideNavigationController *)sharedInstance
@@ -547,7 +549,13 @@ static SlideNavigationController *singletonInstance;
         }
     }
 	
-	self.view.frame = rect;
+    if (problemView) {
+        [problemView setFrame:rect];
+        self.view.frame = CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height);
+    }
+    else{
+        self.view.frame = rect;
+    }
 	[self updateMenuAnimation:menu];
 }
 
@@ -601,6 +609,23 @@ static SlideNavigationController *singletonInstance;
     self.lastRevealedMenu = menu;
 	
 	[removingMenuViewController.view removeFromSuperview];
+    
+    if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad) {
+        for (UIView *subview in [[[UIApplication sharedApplication] delegate] window].subviews) {
+            if ([subview isKindOfClass:NSClassFromString(@"UITransitionView")]) {
+                for (UIView *subview2 in subview.subviews) {
+                    if ([subview2 isKindOfClass:NSClassFromString(@"UIDropShadowView")]) {
+                        for (UIView *subview3 in subview2.subviews) {
+                            if ([subview3 isKindOfClass:NSClassFromString(@"UIView")] && ![subview3 isKindOfClass:NSClassFromString(@"UILayoutContainerView")]) {
+                                problemView = subview3;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
 	[self.view.window insertSubview:menuViewController.view atIndex:0];
 
 	[self updateMenuFrameAndTransformAccordingToOrientation];
@@ -611,6 +636,11 @@ static SlideNavigationController *singletonInstance;
 - (CGFloat)horizontalLocation
 {
 	CGRect rect = self.view.frame;
+    
+    if (problemView) {
+        rect = problemView.frame;
+    }
+    
 	UIInterfaceOrientation orientation = [UIApplication sharedApplication].statusBarOrientation;
 	
     if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0"))
